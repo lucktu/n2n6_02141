@@ -672,8 +672,16 @@ static void help() {
     printf("-a <mode:IPv4/prefixlen> | Set interface IPv4 address. For DHCP use '-r -a dhcp:0.0.0.0/0'\n");
     printf("-A <IPv6>/<prefixlen>    | Set interface IPv6 address, only supported if IPv4 set to 'static'\n");
     printf("-c <community>           | n2n community name the edge belongs to.\n");
-    printf("-B <mode>                | Encryption: B0 = keyfile(-K), B1 = disable, B2 = twofish(-k), B3 = AES-CBC(-k), B5 = Speck(-k)\n");
-    printf("                         : '-B3' can also be used as '-B 3' (for better compatibility)\n");
+    printf("-B <mode>                | Encryption:");
+    #ifdef N2N_HAVE_AES
+    printf(" B0 = keyfile(-K),");
+    #endif
+    printf(" B1 = disable, B2 = twofish(-k)");
+    #ifdef N2N_HAVE_AES
+    printf(", B3 = AES-CBC(-k)");
+    #endif
+    printf(", B5 = Speck(-k)\n");
+    printf("                         : '-B1' can also be used as '-B 1' (for better compatibility)\n");
     printf("-k <encrypt key>         | Encryption key (ASCII, max 32) - also N2N_KEY=<encrypt key>. Not with -K.\n");
     printf("-K <key file>            | Specify a key schedule file to load. Not with -k.\n");
     printf("-l <supernode host:port> | Supernode IP:port\n");
@@ -1976,10 +1984,10 @@ static void readFromIPSocket( n2n_edge_t * eee )
 										eee->sup_attempts = N2N_EDGE_SUP_ATTEMPTS; /* refresh because we got a response */
 
 										if (first_ok_message_shown == 0) {
-												traceEvent(TRACE_NORMAL, "[OK] Edge Peer <<< ================ >>> Super Node");
+												traceEvent(TRACE_NORMAL, "[OK] Edge Peer <<< =======64======= >>> Super Node");
 												first_ok_message_shown = 1;
 										} else {
-												traceEvent(TRACE_DEBUG, "[OK] Edge Peer <<< ================ >>> Super Node");
+												traceEvent(TRACE_DEBUG, "[OK] Edge Peer <<< =======64======= >>> Super Node");
 										}
 
                     /* REVISIT: store sn_back */
