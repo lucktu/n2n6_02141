@@ -10,13 +10,15 @@
 
 #if __linux__
 // linux supports syscall random
+#ifdef HAVE_SYS_RANDOM_H
 #include <sys/random.h>
+#endif
 #elif __unix__
 // BSD has arc4random
 #include <stdlib.h>
 #endif
 
-
+#include <string.h>
 #include <stddef.h>
 #include <stdint.h>
 
@@ -81,6 +83,24 @@ static inline void random_free(random_ctx_t ctx) {
 #endif
 }
 
+#ifndef HAVE_ARC4RANDOM_BUF
+static inline void arc4random_buf(void *buf, size_t nbytes) {
+    uint8_t *p = (uint8_t *)buf;
+    size_t i;
+
+    static int seeded = 0;
+    if (!seeded) {
+        srand(time(NULL));
+        seeded = 1;
+    }
+
+    for (i = 0; i < nbytes; i++) {
+        p[i] = rand() & 0xFF;
+    }
+}
+#define HAVE_ARC4RANDOM_BUF 1
+#endif
+
 static inline void random_bytes(random_ctx_t ctx, uint8_t* buffer, size_t size) {
 #if USE_OPENSSL
     RAND_bytes((void*) buffer, size);
@@ -94,8 +114,6 @@ static inline void random_bytes(random_ctx_t ctx, uint8_t* buffer, size_t size) 
     l_getrandom(buffer, (uint32_t) size);
 #elif USE_BCRYPT
     BCryptGenRandom(ctx->hRandom, buffer, (uint32_t) size, 0);
-#elif __linux__
-    getrandom(buffer, size, 0);
 #elif __unix__
     arc4random_buf(buffer, size);
 #endif

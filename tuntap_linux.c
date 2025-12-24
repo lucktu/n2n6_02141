@@ -15,8 +15,14 @@
  * along with this program; if not, see <http://www.gnu.org/licenses/>
 */
 
-
 #ifdef __linux__
+
+#define _LINUX_IF_H
+
+#ifndef O_CLOEXEC
+#define O_CLOEXEC 02000000
+#endif
+
 #include <net/if.h>     /* if_nametoindex */
 #include <net/if_arp.h> /* required for ARPHRD_ETHER */
 #include <linux/netlink.h>
