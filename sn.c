@@ -741,7 +741,7 @@ static int process_mgmt( n2n_sn_t * sss,
 
     const char* ip_support;
     if (sss->ipv4_available && sss->ipv6_available) {
-        ip_support = "IPv4+IPv6 (dual-stack)";
+        ip_support = "IPv4+IPv6";
     } else if (sss->ipv4_available) {
         ip_support = "IPv4 only";
     } else if (sss->ipv6_available) {

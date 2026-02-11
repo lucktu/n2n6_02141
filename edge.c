@@ -781,17 +781,12 @@ static void send_register_super( n2n_edge_t * eee,
     strncpy(reg.version, n2n_sw_version, sizeof(reg.version) - 1);
     strncpy(reg.os_name, n2n_sw_osName, sizeof(reg.os_name) - 1);
 
-    if (default_ip_assignment) {
-        reg.request_ip = 1;
-        reg.requested_ip = htonl(0x0a400002); // Request 10.64.0.2
-    }
-
     idx=0;
     encode_mac( reg.edgeMac, &idx, eee->device.mac_addr );
 
     if (default_ip_assignment) {
         reg.request_ip = 1;
-        reg.requested_ip = htonl(0x0a400001 + assigned_ip_suffix); /* 10.64.0.x */
+        reg.requested_ip = 0;
     } else if (eee->device.ip_addr != 0) {
         reg.request_ip = 1;
         reg.requested_ip = eee->device.ip_addr;
@@ -2862,7 +2857,7 @@ if (argc > 1 && argv[1][0] != '-' && access(argv[1], R_OK) == 0) {
 
     srand((unsigned int) time(NULL));
 
-    if (inet_pton(AF_INET, ip_addr, &tuntap_config.ip_addr) != 1) {
+    if (strlen(ip_addr) > 0 && inet_pton(AF_INET, ip_addr, &tuntap_config.ip_addr) != 1) {
         traceEvent(TRACE_ERROR, "invalid ipv4 address: %s", ip_addr);
     }
 
