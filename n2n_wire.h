@@ -118,7 +118,7 @@ struct n2n_REGISTER
     n2n_mac_t           srcMac;         /* MAC of registering party */
     n2n_mac_t           dstMac;         /* MAC of target edge */
     n2n_sock_t          sock;           /* REVISIT: unused? */
-    char                version[16];    /* edge version string */
+    char                version[8];     /* edge version string */
     char                os_name[16];    /* operating system name */
 };
 

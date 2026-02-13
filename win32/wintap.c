@@ -271,10 +271,16 @@ int tuntap_open(struct tuntap_dev *device, struct tuntap_config* config) {
 
     /* ****************** */
 
-    if (device->dyn_ip4) {
-        rc = set_dhcp(device);
+    /* Delay IP configuration on Windows when requested and IP is not yet known */
+    if (config->delay_ip_config && device->ip_addr == 0) {
+        traceEvent(TRACE_NORMAL, "Delaying IP configuration until REGISTER_SUPER_ACK");
+        rc = 0;
     } else {
-        rc = set_static_ip_address(device);
+        if (device->dyn_ip4) {
+            rc = set_dhcp(device);
+        } else {
+            rc = set_static_ip_address(device);
+        }
     }
 
     if (rc != 0) {

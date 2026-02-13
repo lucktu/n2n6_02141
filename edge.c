@@ -23,13 +23,13 @@
  *
  */
 
-
 #include "n2n.h"
 #include "n2n_transforms.h"
 #include "speck.h"
-#include <assert.h>
+#include "assert.h"
 #include "minilzo.h"
 #include "random.h"
+#include "string.h"
 
 /* reallocarray compatibility for older glibc versions */
 #ifndef HAVE_REALLOCARRAY
@@ -536,7 +536,6 @@ static int n2n_tick_transop( n2n_edge_t * eee, time_t now )
 
     return 0;
 }
-
 
 
 /** Read in a key-schedule file, parse the lines and pass each line to the
@@ -1768,9 +1767,9 @@ static void readFromMgmtSocket(n2n_edge_t *eee, int *keep_running) {
 
     /* Send header */
     msg_len = snprintf((char*)udp_buf, N2N_PKT_BUF_SIZE,
-                       "  id    mac                wan_ip                                            ver      os\n");
+                       " id  mac                wan_ip                                            ver      os\n");
     msg_len += snprintf((char*) (udp_buf + msg_len), (N2N_PKT_BUF_SIZE - msg_len),
-                        "---n2n6--------------------------------------------------------------------------------------\n");
+                        "---n2n6-----------------------------------------------------------------------------------\n");
     sendto(eee->mgmt_sock, udp_buf, msg_len, 0/*flags*/,
            (struct sockaddr*) &sender_sock, i);
 
@@ -1789,7 +1788,7 @@ static void readFromMgmtSocket(n2n_edge_t *eee, int *keep_running) {
         const char *os_name = (peer->os_name[0] != '\0') ? peer->os_name : "unknown";
 
         msg_len = snprintf((char*)udp_buf, N2N_PKT_BUF_SIZE,
-                           " %2u     %-17s  %-48s  %-8s  %s\n",
+                           " %2u  %-17s  %-48s  %-7s  %s\n",
                            id++,
                            macaddr_str(mac, peer->mac_addr),
                            sock_to_cstr(sockaddr, &peer->sock),
@@ -1813,7 +1812,7 @@ static void readFromMgmtSocket(n2n_edge_t *eee, int *keep_running) {
         const char *os_name = (peer->os_name[0] != '\0') ? peer->os_name : "unknown";
 
         msg_len = snprintf((char*)udp_buf, N2N_PKT_BUF_SIZE,
-                           " %2u     %-17s  %-48s  %-7s  %s\n",
+                           " %2u  %-17s  %-48s  %-7s  %s\n",
                            id++,
                            macaddr_str(mac, peer->mac_addr),
                            sock_to_cstr(sockaddr, &peer->sock),
@@ -1852,7 +1851,7 @@ static void readFromMgmtSocket(n2n_edge_t *eee, int *keep_running) {
 
     /* Send statistics */
     msg_len = snprintf((char*)udp_buf, N2N_PKT_BUF_SIZE,
-                       "--------------------------------------------------------------------------------------n2n6---\n");
+                       "-----------------------------------------------------------------------------------n2n6---\n");
     sendto(eee->mgmt_sock, udp_buf, msg_len, 0/*flags*/,
            (struct sockaddr*) &sender_sock, i);
 
@@ -2001,12 +2000,12 @@ static void readFromIPSocket( n2n_edge_t * eee )
 
             if ( 0 == memcmp(reg.dstMac, (eee->device.mac_addr), 6) )
             {
-																struct peer_info *scan = find_peer_by_mac(eee->known_peers, reg.srcMac);
-																if (NULL == scan) {
-  																  try_send_register(eee, from_supernode, reg.srcMac, &sender);
-																} else {
-    																update_peer_address(eee, from_supernode, reg.srcMac, &sender, time(NULL));
-																}
+				struct peer_info *scan = find_peer_by_mac(eee->known_peers, reg.srcMac);
+				if (NULL == scan) {
+				  try_send_register(eee, from_supernode, reg.srcMac, &sender);
+				} else {
+					update_peer_address(eee, from_supernode, reg.srcMac, &sender, time(NULL));
+				}
             }
 
             send_register_ack(eee, orig_sender, &reg);
@@ -2053,74 +2052,74 @@ static void readFromIPSocket( n2n_edge_t * eee )
                                    sock_to_cstr(sockbuf1, &(ra.sn_bak) ) );
                     }
 
-								          		eee->last_sup = now;
-									          	eee->sn_wait=0;
-									          	eee->sup_attempts = N2N_EDGE_SUP_ATTEMPTS; /* refresh because we got a response */
+					eee->last_sup = now;
+					eee->sn_wait=0;
+					eee->sup_attempts = N2N_EDGE_SUP_ATTEMPTS; /* refresh because we got a response */
 
-									          	if (default_ip_assignment && ra.assigned_ip != 0) {
-  									          	  uint32_t assigned_ip = ntohl(ra.assigned_ip);
-   									          	 char assigned_ip_str[16];
+					if (default_ip_assignment && ra.assigned_ip != 0) {
+					  uint32_t assigned_ip = ntohl(ra.assigned_ip);
+					 char assigned_ip_str[16];
 
-   									          	snprintf(assigned_ip_str, sizeof(assigned_ip_str),
-        									          	      "10.64.0.%u", assigned_ip & 0xFF);
+					snprintf(assigned_ip_str, sizeof(assigned_ip_str),
+								  "10.64.0.%u", assigned_ip & 0xFF);
 
-   									          	 struct in_addr addr;
-   									          	 inet_pton(AF_INET, assigned_ip_str, &addr);
+					 struct in_addr addr;
+					 inet_pton(AF_INET, assigned_ip_str, &addr);
 
-   									          	 /* Only show report on first time or when IP changes */
-   									          	 int ip_changed = (eee->device.ip_addr != addr.s_addr);
+					 /* Only show report on first time or when IP changes */
+					 int ip_changed = (eee->device.ip_addr != addr.s_addr);
 
-   									          	 if (ip_changed) {
-       									          	 eee->device.ip_addr = addr.s_addr;
+					 if (ip_changed) {
+						 eee->device.ip_addr = addr.s_addr;
 
-        									          	if (set_ipaddress(&eee->device, 1) < 0) {
-         									          	   traceEvent(TRACE_ERROR, "Failed to configure TAP interface with assigned IP");
-       									          	 } else {
-          									          	  traceEvent(TRACE_NORMAL, "TAP interface configured with IP %s", assigned_ip_str);
-        									          	}
-   									          	 }
+							if (set_ipaddress(&eee->device, 1) < 0) {
+							   traceEvent(TRACE_ERROR, "Failed to configure TAP interface with assigned IP");
+						 } else {
+							  traceEvent(TRACE_NORMAL, "TAP interface configured with IP %s", assigned_ip_str);
+							}
+					 }
 
-  									          	  /* Only show report on first time or when IP changes */
-   									          	 if (!first_ip_report_shown || ip_changed) {
-       									          	 if (ra.peer_count > 0) {
-           									          	 traceEvent(TRACE_NORMAL, "Community members (%u):", ra.peer_count);
-           									          	 for (int i = 0; i < ra.peer_count && i < 16; i++) {
-            									          	    macstr_t mac_buf;
-               									          	 uint32_t peer_ip = ntohl(ra.peer_ips[i]);
-               									          	 char peer_ip_str[16];
-              									          	  n2n_sock_str_t pub_ip_str;
+					  /* Only show report on first time or when IP changes */
+					 if (!first_ip_report_shown || ip_changed) {
+						 if (ra.peer_count > 0) {
+							 traceEvent(TRACE_NORMAL, "Community members (%u):", ra.peer_count);
+							 for (int i = 0; i < ra.peer_count && i < 16; i++) {
+									macstr_t mac_buf;
+								 uint32_t peer_ip = ntohl(ra.peer_ips[i]);
+								 char peer_ip_str[16];
+								  n2n_sock_str_t pub_ip_str;
 
-              									          	  snprintf(peer_ip_str, sizeof(peer_ip_str), "10.64.0.%u", peer_ip & 0xFF);
+								  snprintf(peer_ip_str, sizeof(peer_ip_str), "10.64.0.%u", peer_ip & 0xFF);
 
-               									          	 traceEvent(TRACE_NORMAL, "  Private IP: %s, Public IP: %s",
-                        									          	   peer_ip_str,
-                        									          	   sock_to_cstr(pub_ip_str, &ra.peer_pub_ips[i]));
-           									          	 }
-       									          	 }
+								 traceEvent(TRACE_NORMAL, "  Private IP: %s, Public IP: %s",
+											   peer_ip_str,
+											   sock_to_cstr(pub_ip_str, &ra.peer_pub_ips[i]));
+							 }
+						 }
 
-       									          	 first_ip_report_shown = 1;
-   									          	 }
-									          	}
+						 first_ip_report_shown = 1;
+					 }
+					}
 
-									          	if (first_ok_message_shown == 0) {
-										          		traceEvent(TRACE_NORMAL, "[OK] Edge Peer <<< =======64======= >>> Super Node");
-												          first_ok_message_shown = 1;
-									          	} else {
-										          		traceEvent(TRACE_DEBUG, "[OK] Edge Peer <<< =======64======= >>> Super Node");
-								          		}
+					if (first_ok_message_shown == 0) {
+							traceEvent(TRACE_NORMAL, "[OK] Edge Peer <<< =======64======= >>> Super Node");
+							  first_ok_message_shown = 1;
+					} else {
+							traceEvent(TRACE_DEBUG, "[OK] Edge Peer <<< =======64======= >>> Super Node");
+					}
 
 
-									          	if (!initial_connection_complete && eee->daemon) {  
-#ifdef N2N_HAVE_DAEMON  
-   									          	 useSyslog = 1; /* traceEvent output now goes to syslog. */  
-   									          	 prctl(PR_SET_KEEPCAPS, 1L);
-    									          	if ( -1 == daemon( 0, 0 ) ) {  
-       									          	 traceEvent( TRACE_ERROR, "Failed to become daemon." );  
-       									          	 exit(-5);  
-    									          	}  
-#endif  
-    									          	initial_connection_complete = 1;  
-									          	}
+					if (!initial_connection_complete && eee->daemon) {
+#ifdef N2N_HAVE_DAEMON
+					 useSyslog = 1; /* traceEvent output now goes to syslog. */
+					 prctl(PR_SET_KEEPCAPS, 1L);
+						if ( -1 == daemon( 0, 0 ) ) {
+						 traceEvent( TRACE_ERROR, "Failed to become daemon." );
+						 exit(-5);
+						}
+#endif
+						initial_connection_complete = 1;
+					}
 
                     /* REVISIT: store sn_back */
                     eee->register_lifetime = ra.lifetime;
@@ -2527,7 +2526,7 @@ int main(int argc, char* argv[])
     int     mtu = DEFAULT_MTU;
     int     got_s = 0;
     struct tuntap_config tuntap_config;
-		int encrypt_mode = 2;
+	int encrypt_mode = 2;
 
 #ifndef _WIN32
     uid_t   userid = 0; /* root is the only guaranteed ID */
@@ -2839,6 +2838,7 @@ if (argc > 1 && argv[1][0] != '-' && access(argv[1], R_OK) == 0) {
     if (default_ip_assignment == 0 && strlen(ip_addr) == 0) {
         // No -a parameter provided at all - use default IP assignment
         default_ip_assignment = 1;
+        tuntap_config.delay_ip_config = 1; /* Windows: delay IP set until REGISTER_SUPER_ACK */
         strcpy(ip_mode, "static");
         ip_prefixlen = 24;
     }

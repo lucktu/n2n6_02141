@@ -179,6 +179,7 @@ struct tuntap_config {
     /* ipv4 configuration */
     bool dyn_ip4;
     in_addr_t ip_addr;
+    bool delay_ip_config; /* Windows: delay IP set until REGISTER_SUPER_ACK */
     uint8_t ip_prefixlen;
     /* ipv6 configuration */
     struct in6_addr ip6_addr;
